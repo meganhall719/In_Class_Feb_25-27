@@ -1,0 +1,156 @@
+---
+title: "Feb_25"
+format: html
+editor: visual
+---
+
+## Confidence Intervals
+
+the standard error is a measure of uncertainty in a statistic value the CI
+
+the CI is another way of describing a statistics sampling distribution.
+
+Interval around an estimate around a statistic we generate.
+
+mean+\_critiacl value x SE of the mean
+
+the value of the statistic +- some critical value x the standard error of the statistic
+
+## Null Hypothesis Testing
+
+**Null Hypothesis; H~0~ : NO IMPACT**
+
+-   No Deviation for what is expected
+
+-   baseline hypothesis and is the claim that is presumed to be true. That claim is typically that a particular value of a population parameter estimated by a sample statistic we have calculated is consistent with a praticular null expectation. The alternative hypothesis is the conjecture that we are testing.
+
+**Alternative Hypothesis; H~[A]{.smallcaps}~:** There is a difference in treatment.
+
+-   Deviates more than expected by chance from what is expected or neutral
+
+1.  **Two Tailed**: any difference in time between two chambers
+
+2.  **One Tailed**: mean time spend in a particular chamber is greater (less than) in alternative
+
+[To implement a hypothesis test, we need to]{.underline}
+
+1.  Calcualte a test statistic
+
+2.  calculate the p value
+
+3.  compare the test statistic to some appropriate standardized sampling distribution with well-known mathematical properties. to yield a
+
+4.  evaluate whether the p value is less than or greater than the significance level, or a, that we set for out test
+
+    1.  a can be though to as the cutoff level for p values
+
+5.  In traditional parametric statistics, then we make the assumption the sampling distribution o four statistic of interest. takes the form of a particular well - unerstood mathematical distribution (e.g. the normal).
+
+## Process: Example from Module 15: One Sample T Test
+
+```{r}
+library(tidyverse)
+f <- "https://raw.githubusercontent.com/difiore/ada-datasets/refs/heads/main/woolly-weights.csv"
+d<-read_csv(f, col_names = TRUE)
+head(d)
+```
+
+Calculate the mean, standard deviation, and SE of your samples
+
+```{r}
+m<- mean(d$weight)
+s<- sd(d$weight)
+se <- s/sqrt(length(d$weight))
+n<-length(d$weight)
+se<-s/sqrt(n)
+```
+
+Test Statistics = m= mean of our sample mu= null hypothesis (expectation)
+
+```{r}
+mu <- 7.2 #(null)
+t_stat <- (m - mu)/se
+t_stat
+```
+
+according to our T_stat = -3.3 we are -3.3 (smaller) standard error units away from our expectation
+
+A T-statistic is a measure of how far your statistic is from your expectation
+
+### Calculating the 95% CI around your estimate of the mean 6.4
+
+1.  **standard normal (qnorm)**
+
+```{r}
+ci <- m + qnorm(c(0.025, 0.975)) * se
+ci
+```
+
+2.  **T-distribution (qt) (fatter; sample size is less than 30)**
+
+```{r}
+ci<-m + qt(p=c(0.025,0.975), ncp = 0, df = n-1) *se
+ci
+```
+
+3.  B**oot Strapping**
+
+    we are sampling with replacement; sampling 15 observations but allow them to be replaced each time
+
+    Does not include expected (null hypothesis (7.2))
+
+    expected value of *statistic* = 0
+
+```{r}
+n_boot <- 10000
+boot <- do(n_boot)*mean(sample(d$weight), n, replace = TRUE) 
+boot
+
+```
+
+```{r}
+n_boot <- 10000
+boot<- vector()
+for (i in 1:n_boot){
+  boot[[i]] <- mean(sample(d$weight, n, replace = TRUE))
+}
+head(boot)
+hist(boot)
+ci <- quantile(probs = c(0.025, 0.975), boot)
+ci
+```
+
+What is the two tailed probability 
+```{r}
+p_lower <-pt(-1*abs(t_stat), df = n-1)
+p_upper <-pt(1* abs(t_stat), df= n-1)
+p <-p_lower + p_upper
+```
+T-test function in R that will do all of this for us 
+```{r}
+t.test(x = d$weight, mu = mu , alternative = "two.sided")
+```
+
+### END OF CLASS CHALLENGE
+
+```{r}
+f <-"https://raw.githubusercontent.com/difiore/ada-datasets/main/tbs-2006-2008-ranges.csv"
+d<-read_csv(f, col_names = TRUE)
+head(d)
+```
+```{r}
+stats <-d |>
+  group_by(sex)|>
+  summarize(mk95 = mean(kernel95),
+            sdk95 = sd(kernel95),
+            sek95 = sd(kernel95)/sqrt(length(kernel95)))
+show(stats)
+```
+
+Creating a boxplot
+```{r}
+p <- ggplot(data = d, mapping = aes(x = sex, y = kernel95))+
+  geom_boxplot()+
+  geom_point()
+p
+```
