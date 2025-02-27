@@ -293,3 +293,39 @@ print(result)
 -   Determine the probability of observing a test statistic as extreme as the one we actually got
 
 -   This tells us how likely our result would be if the null hypothesis of no difference were true
+
+```{r}
+#permutation Test
+d <-d |>
+  select(id, sex, kernel95)
+
+library(dplyr)
+
+# Create summary statistics
+summary <- d |>
+  group_by(sex) |>
+  summarize(mean = mean(kernel95))  # Name the column explicitly
+
+# Calculate observed difference
+obs <- filter(summary, sex == "F") |> pull(mean) -
+      filter(summary, sex == "M") |> pull(mean)
+
+# Prepare for permutation test
+reps <- 10000
+perm <- vector(length = reps)
+  
+
+for(i in 1:reps){
+  temp <- d
+  temp$sex <- sample(temp$sex)
+  summary <- temp |>
+    group_by(sex) |>
+    summarize(mean = mean(kernel95, na.rm = TRUE))  # Added na.rm and corrected syntax
+  perm[i] <- filter(summary, sex == "F") |>
+    pull(mean) -
+    filter(summary, sex == "M") |> pull(mean)
+}
+hist(perm)
+```
+
+
