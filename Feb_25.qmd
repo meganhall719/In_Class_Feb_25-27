@@ -1,5 +1,5 @@
 ---
-title: "Feb_25"
+title: "Feb_25_&_27"
 format: html
 editor: visual
 ---
@@ -160,7 +160,7 @@ p <- ggplot(data = d, mapping = aes(x = sex, y = kernel95))+
 p
 ```
 
-## Class Feb 27 
+## Class Feb 27
 
 ### A Two Sample T-test
 
@@ -170,22 +170,17 @@ d <- read_csv(f, col_names = TRUE)
 d 
 head(d)
 ```
-We are interested in the variables "sex" and "Kernel95"
-single Sample of home range sizes for indivuidal spider monkeys from one social group in ecuador
 
-For each sex, generate a bootstrap distribution form the mean of home rangesize, where you resample the data within each sex 10,000 times 
+We are interested in the variables "sex" and "Kernel95" single Sample of home range sizes for indivuidal spider monkeys from one social group in ecuador
+
+For each sex, generate a bootstrap distribution from the mean of home rangesize, where you resample the data within each sex 10,000 times
+
 ```{r}
+library(dplyr)
+library(boot)
+males <- d %>% filter(sex== "M")
+females <- d %>% filter(sex == "F")
 
-n_boot <- 10000
-boot<- vector()
-for (i in 1:n_boot){
-  boot[[i]] <- mean(sample(d$weight, n, replace = TRUE))
-}
-head(boot)
-hist(boot)
-ci <- quantile(probs = c(0.025, 0.975), boot)
-ci
-```
 
 
 ```
@@ -196,6 +191,105 @@ library(boot)
 males <- d %>% filter(sex== "M")
 females <- d %>% filter(sex == "F")
 
-male_mean <-mean(males$home_range_size, na.rm = TRUE)
+male_mean <- males %>% 
+  summarize(mean_kernel95 = mean(kernel95, na.rm = TRUE))
+
+
+female_mean <- females %>%
+  summarize(mean_kernel95 = mean(kernel95, na.rm = TRUE))
+
+
 print(male_mean)
+print(female_mean)
 ```
+
+```{r}
+#Bootstrap for males
+n_boot <- 10000
+male_boot_mean <- numeric(n_boot)
+female_boot_mean <- numeric (n_boot)
+
+ 
+for(i in 1:n_boot){
+  male_boot_mean[i] <- mean(sample(males$kernel95, 
+                                   size = nrow(males), 
+                                   replace = TRUE), 
+                            na.rm = TRUE)
+}
+
+hist(male_boot_mean, main = "Bootstrap Distribution of Male Mean kernel95",
+     xlab = "Mean kernel95", col = "lightblue")
+
+#Bootstrap for females
+for(i in 1:n_boot){
+  female_boot_mean[i] <- mean(sample(females$kernel95, 
+                                     size = nrow(females), 
+                                     replace = TRUE), 
+                              na.rm = TRUE)
+}
+hist(female_boot_mean, main="Bootstrap Distribution of female Mean kernel95",
+     xlab = "Mean kernel95", col = "lightblue")
+
+```
+
+Is there a signitficant difference in mean hoome range size of males and females ? what is Ho what is Ha Two sample t-test assuming roughly equal varaince int he two groups what is the test statistic (see module 15) (welches t-statistic)
+
+### **Samples with Equal Variances**
+
+### ![](images/Screenshot%202025-02-27%20at%204.16.09%20PM-01.png){width="242"}
+
+### There’s a simpler T statistic we can use if the variances of the two samples are more or less equal.
+
+![](images/Screenshot%202025-02-27%20at%204.18.38%20PM-01.png)
+
+```{r}
+n <- (318.7846- 429.7407-0)
+n
+```
+
+```{r}
+s2 <- ((nrow(males) - 1) * sd(males$kernel95)^2 + 
+       (nrow(females) - 1) * sd(females$kernel95)^2)/(nrow(males) + nrow(females) - 2)
+t_stat <-  t_stat <- (mean(males$kernel95) - mean(females$kernel95)) / 
+          sqrt(s2 * (1/nrow(males) + 1/nrow(females)))
+df <- nrow(males) + nrow(females) - 2
+p_value <- 2 * pt(-abs(t_stat), df)
+print(paste("t-statistic:", t_stat))
+print(paste("degrees of freedom:", df))
+print(paste("p-value:", p_value))
+
+
+```
+
+## R's built-in t.test function, which handles all these calculations for you:
+
+```{r}
+result <- t.test(males$kernel95, females$kernel95, var.equal = TRUE)
+print(result)
+```
+
+## Programming out own two-sample permutation test alternative to this standard parametric t-test
+
+1.  Choose a test statistic
+
+-   Use the difference between means of the two groups
+
+2.  Define the null hypothesis
+
+-   Two-tailed: The mean for males and females is the same
+
+-   or
+
+-   One-tailed: The mean for one sex is greater/less than that for the other sex
+
+3.  Generate a permutation distribution
+
+-   Create distribution for the test statistic by repeatedly shuffling group labels
+
+-   This requires ***permutation*** to break the association we want to test (in this case, between sex and home range size)
+
+4.  Calculate the p-value
+
+-   Determine the probability of observing a test statistic as extreme as the one we actually got
+
+-   This tells us how likely our result would be if the null hypothesis of no difference were true
