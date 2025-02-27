@@ -120,13 +120,16 @@ ci <- quantile(probs = c(0.025, 0.975), boot)
 ci
 ```
 
-What is the two tailed probability 
+What is the two tailed probability
+
 ```{r}
 p_lower <-pt(-1*abs(t_stat), df = n-1)
 p_upper <-pt(1* abs(t_stat), df= n-1)
 p <-p_lower + p_upper
 ```
-T-test function in R that will do all of this for us 
+
+T-test function in R that will do all of this for us
+
 ```{r}
 t.test(x = d$weight, mu = mu , alternative = "two.sided")
 ```
@@ -138,6 +141,7 @@ f <-"https://raw.githubusercontent.com/difiore/ada-datasets/main/tbs-2006-2008-r
 d<-read_csv(f, col_names = TRUE)
 head(d)
 ```
+
 ```{r}
 stats <-d |>
   group_by(sex)|>
@@ -148,9 +152,50 @@ show(stats)
 ```
 
 Creating a boxplot
+
 ```{r}
 p <- ggplot(data = d, mapping = aes(x = sex, y = kernel95))+
   geom_boxplot()+
   geom_point()
 p
+```
+
+## Class Feb 27 
+
+### A Two Sample T-test
+
+```{r}
+f <-"https://raw.githubusercontent.com/difiore/ada-datasets/main/tbs-2006-2008-ranges.csv"
+d <- read_csv(f, col_names = TRUE)
+d 
+head(d)
+```
+We are interested in the variables "sex" and "Kernel95"
+single Sample of home range sizes for indivuidal spider monkeys from one social group in ecuador
+
+For each sex, generate a bootstrap distribution form the mean of home rangesize, where you resample the data within each sex 10,000 times 
+```{r}
+
+n_boot <- 10000
+boot<- vector()
+for (i in 1:n_boot){
+  boot[[i]] <- mean(sample(d$weight, n, replace = TRUE))
+}
+head(boot)
+hist(boot)
+ci <- quantile(probs = c(0.025, 0.975), boot)
+ci
+```
+
+
+```
+
+```{r}
+library(dplyr)
+library(boot)
+males <- d %>% filter(sex== "M")
+females <- d %>% filter(sex == "F")
+
+male_mean <-mean(males$home_range_size, na.rm = TRUE)
+print(male_mean)
 ```
